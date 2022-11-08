@@ -26,9 +26,14 @@ export class BuyingUtility {
     public storage: BuyingUtilityStorage = {
         _admin: 'tz1afKmEFo11mpXr4JdodJDTXYLfw7GTFbak',
         _status: _NOT_ENTERED,
-        _bot_role: [['tz1afKmEFo11mpXr4JdodJDTXYLfw7GTFbak', BOT_ROLE]],
+        _bot_role: [],
         pendingPlatformFee: 0,
     };
+
+    constructor() {
+        this.storage._admin = Sp.source;
+        this.storage._bot_role.set(Sp.source, BOT_ROLE)
+    }
 
     @Inline
     failIfSenderNotBOT() {
@@ -64,6 +69,8 @@ export class BuyingUtility {
     withdrawFee(to: TAddress, amount: TMutez): void {
         this.failIfSenderNotAdmin()
         Sp.verify(amount <= this.storage.pendingPlatformFee, ErrorCodes.BUYING_UTILITY_INSUFFICIENT_WITHDRAW_AMOUNT);
+
+        this.storage.pendingPlatformFee -= amount;
 
         Sp.transfer(Sp.unit, amount, Sp.contract<TUnit>(to).openSome('Invalid Interface'));
     }
