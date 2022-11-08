@@ -26,7 +26,7 @@ export class BuyingUtility {
     public storage: BuyingUtilityStorage = {
         _admin: 'tz1afKmEFo11mpXr4JdodJDTXYLfw7GTFbak',
         _status: _NOT_ENTERED,
-        _bot_role: [],
+        _bot_role: [['tz1afKmEFo11mpXr4JdodJDTXYLfw7GTFbak', BOT_ROLE]],
         pendingPlatformFee: 0,
     };
 
@@ -83,12 +83,12 @@ export class BuyingUtility {
         Sp.verify(Sp.now <= deadline, ErrorCodes.BUYING_UTILITY_EXPIRED);
         Sp.verify(slippageBIPS <= 1E4, ErrorCodes.BUYING_UTILITY_OVER_SLIPPAGES)
 
-        const platformFee = Sp.ediv(platformFeeBIPS.multiply(Sp.amount), 1E4 as TMutez).openSome('Invalid Calculation platformFee');
-        this.storage.pendingPlatformFee += platformFee.snd();
+        const platformFee = Sp.ediv(platformFeeBIPS.multiply(Sp.amount), 1E4 as TNat).openSome('Invalid Calculation platformFee');
+        this.storage.pendingPlatformFee += platformFee.fst();
 
-        Sp.verify(Sp.amount > platformFee.snd(), ErrorCodes.BUYING_UTILITY_INSUFFICIENT_TEZ_TO_SWAP);
-        const tezAmount: TMutez = Sp.amount - platformFee.snd();
-
+        Sp.verify(Sp.amount > platformFee.fst(), ErrorCodes.BUYING_UTILITY_INSUFFICIENT_TEZ_TO_SWAP);
+        const tezAmount: TMutez = Sp.amount - platformFee.fst();
+        
         const intVal: TInt = (1E4 - slippageBIPS);
         const minTokensBought: TNat = Sp.ediv(tezAmount, 1 as TMutez).openSome().fst() * tokenAmountPerTEZ * intVal.toNat() / 1E10;
         const aPair: TTuple<[TAddress, TNat, TTimestamp]> = [to, minTokensBought, Sp.now];
