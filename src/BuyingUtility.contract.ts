@@ -88,12 +88,13 @@ export class BuyingUtility {
 
         Sp.verify(Sp.amount > platformFee.fst(), ErrorCodes.BUYING_UTILITY_INSUFFICIENT_TEZ_TO_SWAP);
         const tezAmount: TMutez = Sp.amount - platformFee.fst();
-        
+
         const intVal: TInt = (1E4 - slippageBIPS);
         const minTokensBought: TNat = Sp.ediv(tezAmount, 1 as TMutez).openSome().fst() * tokenAmountPerTEZ * intVal.toNat() / 1E10;
-        const aPair: TTuple<[TAddress, TNat, TTimestamp]> = [to, minTokensBought, Sp.now];
+        const aPair: TTuple<[TAddress, TNat, TTimestamp]> = [to, minTokensBought, deadline];
+        
         const contact = Sp.contract<TTuple<[TAddress, TNat, TTimestamp]>>(dexAddress, 'xtzToToken').openSome('Invalid Interface');
-        Sp.transfer(aPair, Sp.amount, contact)
+        Sp.transfer(aPair, tezAmount, contact)
 
         this.nonReentrantEnd();
     }
