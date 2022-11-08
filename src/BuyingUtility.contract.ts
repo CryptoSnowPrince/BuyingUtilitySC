@@ -15,44 +15,24 @@ const _ENTERED = 2;
 interface BuyingUtilityStorage {
     _admin: TAddress;
     _status: TNat;
-    pendingPlatformFee: TMutez;
     _bot_role: TMap<TAddress, TBool>;
+    pendingPlatformFee: TMutez;
 }
 
 const BOT_ROLE = true;
 
-/**
- * @description Class that defines the default storage
- */
-class Storage {
+@Contract
+export class BuyingUtility {
     public storage: BuyingUtilityStorage = {
-        _admin: '',
+        _admin: 'tz1afKmEFo11mpXr4JdodJDTXYLfw7GTFbak',
         _status: _NOT_ENTERED,
         _bot_role: [],
         pendingPlatformFee: 0,
     };
 
-    constructor() {
-        const init_storage: BuyingUtilityStorage = {
-            _admin: Sp.source,
-            _status: _NOT_ENTERED,
-            _bot_role: [[Sp.source, BOT_ROLE]],
-            pendingPlatformFee: 0,
-        }
-
-        this.storage = init_storage;
-    }
-}
-/**
- * @description Class with inline functions, which are common to multiple entry_points
- */
-class Helpers extends Storage {
-    /**
-     * @description Fail if the sender has not got BOT_ROLE
-     */
     @Inline
     failIfSenderNotBOT() {
-        Sp.verify(this.storage._bot_role.get(Sp.sender), ErrorCodes.BUYING_UTILITY_NOT_BOT);
+        Sp.verify(this.storage._bot_role.get(Sp.sender) === BOT_ROLE, ErrorCodes.BUYING_UTILITY_NOT_BOT);
     }
 
     /**
@@ -79,10 +59,7 @@ class Helpers extends Storage {
     nonReentrantEnd() {
         this.storage._status = _NOT_ENTERED;
     }
-}
 
-@Contract
-export class BuyingUtility extends Helpers {
     @EntryPoint
     withdrawFee(to: TAddress, amount: TMutez): void {
         this.failIfSenderNotAdmin()
@@ -112,13 +89,25 @@ export class BuyingUtility extends Helpers {
         Sp.verify(Sp.amount > platformFee.snd(), ErrorCodes.BUYING_UTILITY_INSUFFICIENT_TEZ_TO_SWAP);
         const tezAmount: TMutez = Sp.amount - platformFee.snd();
 
-        const intVal: TInt = (1E4 -slippageBIPS);
+        const intVal: TInt = (1E4 - slippageBIPS);
         const minTokensBought: TNat = Sp.ediv(tezAmount, 1 as TMutez).openSome().fst() * tokenAmountPerTEZ * intVal.toNat() / 1E10;
         const aPair: TTuple<[TAddress, TNat, TTimestamp]> = [to, minTokensBought, Sp.now];
         const contact = Sp.contract<TTuple<[TAddress, TNat, TTimestamp]>>(dexAddress, 'xtzToToken').openSome('Invalid Interface');
         Sp.transfer(aPair, Sp.amount, contact)
 
         this.nonReentrantEnd();
+    }
+
+    @EntryPoint
+    setAdmin(_newAdmin: TAddress): void {
+        this.failIfSenderNotAdmin()
+        this.storage._admin = _newAdmin;
+    }
+
+    @EntryPoint
+    setBotRole(_bot_role: TAddress, _enable: TBool): void {
+        this.failIfSenderNotAdmin()
+        this.storage._bot_role.set(_bot_role, _enable);
     }
 }
 

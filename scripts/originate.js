@@ -8,6 +8,7 @@ const { execSync } = require('child_process');
 
 // var CMD = `${SCRIPT_PATH} originate-contract`;
 const CMD = `~/smartpy-cli/SmartPy.sh originate-contract --rpc https://mainnet.smartpy.io --private-key edskRwA4LRVPxBpN4gzoUTBFoxayGm9gYjYRFhxqVzpb9c6FZn845V4osPSiSWrR4jav5FRuc25cySvEzNm2sWe14wKMiuqH5N`
+// const CMD = `~/smartpy-cli/SmartPy.sh originate-contract --rpc https://ghostnet.smartpy.io --private-key edskRwA4LRVPxBpN4gzoUTBFoxayGm9gYjYRFhxqVzpb9c6FZn845V4osPSiSWrR4jav5FRuc25cySvEzNm2sWe14wKMiuqH5N`
 
 const prefix = `./build/compilation/BuyingUtility.contract/buyingUtility/step_000_cont_0_`
 
