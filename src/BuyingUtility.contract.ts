@@ -6,6 +6,7 @@ enum ErrorCodes {
     BUYING_UTILITY_EXPIRED,
     BUYING_UTILITY_INSUFFICIENT_TEZ_TO_SWAP,
     BUYING_UTILITY_OVER_SLIPPAGES,
+    BUYING_UTILITY_INSUFFICIENT_TEZ_TO_GAS,
 }
 
 const _NOT_ENTERED = 1;
@@ -77,31 +78,37 @@ export class BuyingUtility {
 
     @EntryPoint
     buyToken(
+        tezAmount: TMutez,
         dexAddress: TAddress,
         tokenAmountPerTEZ: TNat,
         slippageBIPS: TNat,
         to: TAddress,
         platformFeeBIPS: TNat,
+        gasEstimate: TMutez,
         deadline: TTimestamp
     ): void {
         this.failIfSenderNotBOT();
         this.nonReentrantStart();
 
         Sp.verify(Sp.now <= deadline, ErrorCodes.BUYING_UTILITY_EXPIRED);
-        Sp.verify(slippageBIPS <= 1E4, ErrorCodes.BUYING_UTILITY_OVER_SLIPPAGES)
+        Sp.verify(slippageBIPS <= 1E4, ErrorCodes.BUYING_UTILITY_OVER_SLIPPAGES);
 
-        const platformFee = Sp.ediv(platformFeeBIPS.multiply(Sp.amount), 1E4 as TNat).openSome('Invalid Calculation platformFee');
+        Sp.verify(gasEstimate <= tezAmount, ErrorCodes.BUYING_UTILITY_INSUFFICIENT_TEZ_TO_GAS)
+
+        var _tezAmount: TMutez = tezAmount - gasEstimate;
+
+        const platformFee = Sp.ediv(platformFeeBIPS.multiply(_tezAmount), 1E4 as TNat).openSome('Invalid Calculation platformFee');
         this.storage.pendingPlatformFee += platformFee.fst();
 
-        Sp.verify(Sp.amount > platformFee.fst(), ErrorCodes.BUYING_UTILITY_INSUFFICIENT_TEZ_TO_SWAP);
-        const tezAmount: TMutez = Sp.amount - platformFee.fst();
+        Sp.verify(_tezAmount > platformFee.fst(), ErrorCodes.BUYING_UTILITY_INSUFFICIENT_TEZ_TO_SWAP);
+        _tezAmount -= platformFee.fst();
 
         const intVal: TInt = (1E4 - slippageBIPS);
-        const minTokensBought: TNat = Sp.ediv(tezAmount, 1 as TMutez).openSome().fst() * tokenAmountPerTEZ * intVal.toNat() / 1E10;
+        const minTokensBought: TNat = Sp.ediv(_tezAmount, 1 as TMutez).openSome().fst() * tokenAmountPerTEZ * intVal.toNat() / 1E10;
         const aPair: TTuple<[TAddress, TNat, TTimestamp]> = [to, minTokensBought, deadline];
-        
+
         const contact = Sp.contract<TTuple<[TAddress, TNat, TTimestamp]>>(dexAddress, 'xtzToToken').openSome('Invalid Interface');
-        Sp.transfer(aPair, tezAmount, contact)
+        Sp.transfer(aPair, _tezAmount, contact)
 
         this.nonReentrantEnd();
     }
