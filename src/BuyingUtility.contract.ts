@@ -124,6 +124,9 @@ export class BuyingUtility {
         this.failIfSenderNotAdmin()
         this.storage._bot_role.set(_bot_role, _enable);
     }
+
+    @EntryPoint
+    default(): void { }
 }
 
 Dev.compileContract('buyingUtility', new BuyingUtility());
